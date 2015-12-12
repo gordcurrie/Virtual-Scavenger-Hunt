@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      html, body { 
+        height: 100%; margin: 0; padding: 0; 
+      }
+
+      .infobox-wrapper {
+        border:2px solid black;
+        margin-top: 8px;
+        background:#333;
+        color:#FFF;
+        font-family:Arial, Helvetica, sans-serif;
+        font-size:12px;
+        padding: .5em 1em;
+        -webkit-border-radius: 2px;
+        -moz-border-radius: 2px;
+        border-radius: 2px;
+        text-shadow:0 -1px #000000;
+        -webkit-box-shadow: 0 0  8px #000;
+        box-shadow: 0 0 8px #000;
+      }
+
+      #map { 
+        height: 100%; 
+      }
+
+      #content imag {
+        height: 
+      }
+
+      #progressWrapper {
+
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      window.twttr = (function (d, s, id) {
+        var t, js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src= "https://platform.twitter.com/widgets.js";
+        fjs.parentNode.insertBefore(js, fjs);
+        return window.twttr || (t = { _e: [], ready: function (f) { t._e.push(f) } });
+      }(document, "script", "twitter-wjs"));
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=API_KEY"></script>
+    <script type="text/javascript" src="http://google-maps-utility-library-v3.googlecode.com/svn/trunk/infobox/src/infobox.js"></script>
+    <script type="text/javascript" src="./js/jquery-2.1.4.min.js"></script>
+
+    <script type="text/javascript">
+      var map;
+      var currentLocation = {};
+      var json = [{
+        title: "Gord's Home",
+        position: {lat: 45.333, lng: -64.783},
+        content: "<div class='infobox-wrapper'><h1>Gord's Home</h1><p>This where Gord grew up.</p><img src='./images/darth-vader.jpg'/><p>Congrats you completed the tour.</p><div id='new-button'></div></div>"
+      },
+      {
+        title: "CMHR",
+        position: {lat: 49.890786, lng: -97.131},
+        content: "<div class='infobox-wrapper'><h1>CMHR</h1><p>This is Gord's house</p><img src='./images/darth-vader.jpg'/><p>Next find where Gord grow up. (hint: Advocate Harbour, Nova Scotia)</p><div id='new-button'></div></div>"
+      },
+      {
+        title: "You are here",
+        position: currentLocation,
+        content: "<div class='infobox-wrapper'><h1>You are here</h1><p>Do you want to play a game?</p><img src='./images/darth-vader.jpg'/><p>Find where Gord works. (hint: The Canadian Museum for Human Rights)</p><div id='new-button'></div></div>"
+      }];
+
+      var markers = [];
+
+      function createButton(title) {
+        twttr.widgets.createShareButton(
+          'http://192.168.1.3:81/index.html',
+          document.getElementById('new-button'),
+          {
+            count: 'none',
+            text: 'I found "' + title + '". Play along too.'
+          }).then(function (el) {
+            console.log("Button created.")
+          });
+      }
+
+      function drawMap() {
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: currentLocation,
+          zoom: 16
+        });
+
+        var arrayLength = json.length;
+        for (var i = 0; i < arrayLength; i++) {
+          addMarker(json[i]);
+        }
+        
+        google.maps.event.addListener(map, 'zoom_changed', function() {
+            var zoom = map.getZoom();
+            var arrayLength = markers.length;
+            if(zoom < 11) {
+              for (var i = 0; i < arrayLength; i++) {
+                hideMarker(markers[i]);
+              }
+            } else {
+              for (var i = 0; i < arrayLength; i++) {
+                showMarker(markers[i]);
+              }
+            }
+        });   
+      }
+
+      function initMap() {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          currentLocation.lat = position.coords.latitude;
+          currentLocation.lng = position.coords.longitude;
+          drawMap();
+          
+        }, function() {
+          currentLocation.lat = 49.899488;
+          currentLocation.lng = -97.125425;
+          drawMap();
+        });
+
+        
+      }
+
+      function addMarker(marker) {
+          var infobox = new InfoBox({
+            content: marker.content,
+            disableAutoPan: false,
+            maxWidth: 150,
+            pixelOffset: new google.maps.Size(-140, 0),
+            zIndex: null,
+            boxStyle: {
+              background: "url('http://google-maps-utility-library-v3.googlecode.com/svn/trunk/infobox/examples/tipbox.gif') no-repeat",
+              opacity: 0.9,
+              width: "280px"
+            },
+            closeBoxMargin: "12px 4px 2px 2px",
+            closeBoxURL: "http://www.google.com/intl/en_us/mapfiles/close.gif",
+            infoBoxClearance: new google.maps.Size(1, 1)
+          });
+
+          var marker = new google.maps.Marker({
+            position: marker.position,
+            map: map,
+            title: marker.title
+          });
+          marker.addListener('click', function() {
+            infobox.open(map, marker);
+          });
+          markers.push(marker);
+
+          if (marker.title === "You are here") {
+            infobox.open(map, marker);
+          }
+
+          google.maps.event.addListener(infobox, 'domready', function(event) {
+            createButton(marker.title);
+          });
+
+      }
+
+      function hideMarker(marker) {
+        marker.setVisible(false);
+      }
+
+      function showMarker(marker) {
+        marker.setVisible(true);
+      }
+
+      $(document).ready( function() {
+        initMap();
+
+        $('body').append('<div id="progressWrapper"></div>');
+
+      });
+    </script>
+  </body>
+</html>
